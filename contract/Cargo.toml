@@ -1,0 +1,11 @@
+[package]
+authors = ["xiangxn"]
+edition = "2021"
+name = "account-bindings"
+version = "0.1.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+near-sdk = "4.0.0"
