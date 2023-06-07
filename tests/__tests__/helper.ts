@@ -14,6 +14,7 @@ export function init() {
     // Create accounts
     const root = worker.rootAccount;
     const owner = await root.createSubAccount("owner");
+    const manager = await root.createSubAccount("manager");
     const alice = await root.createSubAccount("alice");
     const bob = await root.createSubAccount("bob");
 
@@ -25,9 +26,12 @@ export function init() {
       owner_id: owner,
     });
 
+    // Add manager
+    await addManager(contract, owner, manager);
+
     // Save state for test runs, it is unique for each test
     t.context.worker = worker;
-    t.context.accounts = { root, owner, contract, alice, bob };
+    t.context.accounts = { root, contract, owner, manager, alice, bob };
   });
 
   test.afterEach(async (t) => {
@@ -52,14 +56,116 @@ export interface BindingProposal {
 }
 
 export enum Platform {
-  Twitter,
-  Facebook,
-  Reddit,
-  GitHub,
-  Telegram,
-  Discord,
-  Instagram,
-  Ethereum,
-  Hive,
-  Steem,
+  Twitter = "twitter",
+  Facebook = "facebook",
+  Reddit = "reddit",
+  GitHub = "github",
+  Telegram = "telegram",
+  Discord = "discord",
+  Instagram = "instagram",
+  Ethereum = "ethereum",
+  Hive = "hive",
+  Steem = "steem",
+}
+
+// Binding methods
+
+export async function proposeBinding(
+  contract: NearAccount,
+  user: NearAccount,
+  platform: Platform,
+  handle: String
+) {
+  return user.call(contract, "propose_binding", {
+    platform,
+    handle,
+  });
+}
+
+export async function acceptBinding(
+  contract: NearAccount,
+  manager: NearAccount,
+  user: NearAccount,
+  platform: Platform
+) {
+  await manager.call(contract, "accept_binding", {
+    account_id: user,
+    platform,
+    verification_timestamp: Date.now() - 1,
+  });
+}
+
+export async function getProposal(
+  contract: NearAccount,
+  user: NearAccount,
+  platform: Platform
+): Promise<BindingProposal> {
+  return contract.view("get_proposal", {
+    account_id: user,
+    platform,
+  });
+}
+
+export async function getHandle(
+  contract: NearAccount,
+  user: NearAccount,
+  platform: Platform
+): Promise<String> {
+  return contract.view("get_handle", {
+    account_id: user,
+    platform,
+  });
+}
+
+export async function lookupAccount(
+  contract: NearAccount,
+  platform: Platform,
+  handle: String
+): Promise<String> {
+  return contract.view("lookup_account", {
+    platform,
+    handle,
+  });
+}
+
+// Admin methods
+
+export async function setOwner(
+  contract: NearAccount,
+  owner: NearAccount,
+  new_owner: NearAccount
+) {
+  return owner.call(contract, "set_owner", {
+    new_owner_id: new_owner,
+  });
+}
+
+export async function addManager(
+  contract: NearAccount,
+  owner: NearAccount,
+  manager: NearAccount
+) {
+  return owner.call(contract, "add_manager", {
+    manager_id: manager,
+  });
+}
+
+export async function removeManager(
+  contract: NearAccount,
+  owner: NearAccount,
+  manager: NearAccount
+) {
+  return owner.call(contract, "remove_manager", {
+    manager_id: manager,
+  });
+}
+
+export async function getOwnerId(contract: NearAccount) {
+  return contract.view("get_owner_id");
+}
+
+export async function isManager(contract: NearAccount, accountId: NearAccount) {
+  return contract.view("is_manager", {
+    account_id: accountId,
+  });
 }

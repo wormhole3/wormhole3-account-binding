@@ -5,6 +5,5 @@ use near_sdk::{
 };
 use std::collections::HashMap;
 
-/// public view functions
 #[near_bindgen]
 impl Contract {}

@@ -11,6 +11,7 @@ const EVENT_STANDARD_VERSION: &str = "1.0.0";
 #[serde(rename_all = "snake_case")]
 #[must_use = "Don't forget to `.emit()` this event"]
 pub enum Event<'a> {
+    // Binding Events
     ProposeBinding {
         account_id: &'a AccountId,
         platform: &'a Platform,
@@ -27,6 +28,17 @@ pub enum Event<'a> {
         account_id: &'a AccountId,
         platform: &'a Platform,
         handle: &'a String,
+    },
+    // Admin Events
+    ChangeOwner {
+        old_owner_id: &'a AccountId,
+        new_owner_id: &'a AccountId,
+    },
+    AddManager {
+        manager_id: &'a AccountId,
+    },
+    RemoveManager {
+        manager_id: &'a AccountId,
     },
 }
 

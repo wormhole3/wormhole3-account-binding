@@ -57,4 +57,14 @@ impl Contract {
             .get(&handle)
             .unwrap_or_else(|| AccountId::new_unchecked("".to_string()))
     }
+
+    // Get contract owner ID
+    pub fn get_owner_id(&self) -> AccountId {
+        self.owner_id.clone()
+    }
+
+    // Check whether account is a manager
+    pub fn is_manager(&self, account_id: AccountId) -> bool {
+        self.managers.contains(&account_id)
+    }
 }

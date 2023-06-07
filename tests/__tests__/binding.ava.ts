@@ -1,25 +1,37 @@
-import { BindingProposal, init } from "./helper";
+import {
+  Platform,
+  acceptBinding,
+  getHandle,
+  getProposal,
+  init,
+  lookupAccount,
+  proposeBinding,
+} from "./helper";
 
 const test = init();
 
+const twitter = Platform.Twitter;
+
 test("get default twitter handle", async (t) => {
   const { contract, alice } = t.context.accounts;
-  const handle = await contract.view("get_handle", {
-    account_id: alice,
-    platform: "twitter",
-  });
-  t.is(handle, "");
+  t.is(await getHandle(contract, alice, twitter), "");
 });
 
-test("submit binding proposal", async (t) => {
-  const { alice, contract } = t.context.accounts;
-  await alice.call(contract, "propose_binding", {
-    platform: "twitter",
-    handle: "alice001",
-  });
-  const proposal: BindingProposal = await contract.view("get_proposal", {
-    account_id: alice,
-    platform: "twitter",
-  });
-  t.is(proposal.handle, "alice001");
+test("submit and accept binding proposal", async (t) => {
+  const { contract, manager, alice } = t.context.accounts;
+
+  const aliceTwitterHandle = "alice001";
+
+  // alice proposes binding
+  await proposeBinding(contract, alice, twitter, aliceTwitterHandle);
+  const proposal = await getProposal(contract, alice, twitter);
+  t.is(proposal.handle, aliceTwitterHandle);
+
+  // manager accepts binding
+  await acceptBinding(contract, manager, alice, twitter);
+  t.is(await getHandle(contract, alice, twitter), aliceTwitterHandle);
+  t.is(
+    await lookupAccount(contract, twitter, aliceTwitterHandle),
+    alice.accountId
+  );
 });
