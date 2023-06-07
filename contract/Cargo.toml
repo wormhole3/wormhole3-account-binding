@@ -1,7 +1,7 @@
 [package]
 authors = ["xiangxn"]
 edition = "2021"
-name = "account-bindings"
+name = "wormhole3-account-binding"
 version = "0.1.0"
 
 [lib]

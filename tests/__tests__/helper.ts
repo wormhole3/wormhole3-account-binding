@@ -19,8 +19,10 @@ export function init() {
     const bob = await root.createSubAccount("bob");
 
     // Deploy contract
-    const contract = await root.createSubAccount("account-bindings");
-    await contract.deploy("tests/compiled-contracts/account_bindings.wasm");
+    const contract = await root.createSubAccount("wormhole3-account-binding");
+    await contract.deploy(
+      "tests/compiled-contracts/wormhole3_account_binding.wasm"
+    );
     // Initialize contract
     await owner.call(contract, "new", {
       owner_id: owner,

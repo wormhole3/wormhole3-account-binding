@@ -1,4 +1,4 @@
-# wormhole3_account_bindings
+# wormhole3_account_binding
 Wormhole3 Account Bindings Contract on NEAR
 
 ## Environment Requirements

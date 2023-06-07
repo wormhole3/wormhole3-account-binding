@@ -9,15 +9,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe438c63458706e03479442743baae6c88256498e6431708f6dfc520a26515d3"
 
 [[package]]
-name = "account-bindings"
-version = "0.1.0"
-dependencies = [
- "near-sdk",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "ahash"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1486,6 +1477,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61de7bac303dc551fe038e2b3cef0f571087a47571ea6e79a87692ac99b99699"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "wormhole3-account-binding"
+version = "0.1.0"
+dependencies = [
+ "near-sdk",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

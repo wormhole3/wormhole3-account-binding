@@ -2,15 +2,15 @@ RFLAGS="-C link-arg=-s"
 
 # main contracts
 
-build: account-bindings
+build: wormhole3-account-binding
 
-account-bindings: contract
-	$(call compile_release,account-bindings)
+wormhole3-account-binding: contract
+	$(call compile_release,wormhole3-account-binding)
 	@mkdir -p res
-	cp target/wasm32-unknown-unknown/release/account_bindings.wasm ./res
+	cp target/wasm32-unknown-unknown/release/wormhole3_account_binding.wasm ./res
 
 dev-deploy: build
-	near dev-deploy --wasmFile ./res/account_bindings.wasm
+	near dev-deploy --wasmFile ./res/wormhole3_account_binding.wasm
 
 clean:
 	rm res/*.wasm
@@ -36,7 +36,7 @@ test: test-unit test-integration
 test-unit:
 	cargo test 
 
-test-integration: test-account-bindings
+test-integration: test-account-binding
 
 monkey-patch:
 	cp ./tests/web.js node_modules/near-workspaces/node_modules/near-api-js/lib/utils/
@@ -45,7 +45,7 @@ TEST_FILE ?= **
 LOGS ?=
 TEST_CONCURRENCY ?= 4
 
-test-account-bindings: monkey-patch build
+test-account-binding: monkey-patch build
 	@mkdir -p ./tests/compiled-contracts/
-	@cp ./res/account_bindings.wasm ./tests/compiled-contracts/
+	@cp ./res/wormhole3_account_binding.wasm ./tests/compiled-contracts/
 	NEAR_PRINT_LOGS=$(LOGS) npx ava --timeout=5m tests/__tests__/$(TEST_FILE).ava.ts --verbose

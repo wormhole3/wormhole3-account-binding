@@ -3,7 +3,7 @@ use near_sdk::{log, AccountId, Timestamp};
 use serde::Serialize;
 use serde_json::json;
 
-const EVENT_STANDARD: &str = "account-bindings";
+const EVENT_STANDARD: &str = "wormhole3-account-binding";
 const EVENT_STANDARD_VERSION: &str = "1.0.0";
 
 #[derive(Serialize, Clone)]
@@ -72,7 +72,7 @@ mod tests {
         .emit();
         assert_eq!(
             test_utils::get_logs()[0],
-            r#"EVENT_JSON:{"standard":"account-bindings","version":"1.0.0","event":"propose_binding","data":[{"account_id":"alice.near","platform":"twitter","handle":"alice001","created_at":1600000000000}]}"#
+            r#"EVENT_JSON:{"standard":"wormhole3-account-binding","version":"1.0.0","event":"propose_binding","data":[{"account_id":"alice.near","platform":"twitter","handle":"alice001","created_at":1600000000000}]}"#
         );
     }
 }

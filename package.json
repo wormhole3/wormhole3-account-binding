@@ -1,5 +1,5 @@
 {
-  "name": "wormhole3-account-bindings",
+  "name": "wormhole3-account-binding",
   "version": "0.1.0",
   "description": "Bind NEAR accounts with your social media handles",
   "main": "index.js",
@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:wormhole3/wormhole3-account-bindings.git"
+    "url": "git@github.com:wormhole3/wormhole3-account-binding.git"
   },
   "author": "wormhole3",
   "license": "MIT",
