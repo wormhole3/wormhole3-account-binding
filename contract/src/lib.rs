@@ -8,6 +8,7 @@ use near_sdk::collections::{LookupMap, UnorderedMap, UnorderedSet};
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{env, near_bindgen, require, AccountId, BorshStorageKey, PanicOnDefault, Timestamp};
 use std::collections::HashMap;
+use std::fmt;
 
 #[derive(BorshStorageKey, BorshSerialize)]
 pub(crate) enum StorageKey {
@@ -21,7 +22,16 @@ pub(crate) enum StorageKey {
 /// Platform that we will verify
 /// Now only Twitter is supported
 #[derive(
-    Serialize, Deserialize, BorshDeserialize, BorshSerialize, Clone, PartialEq, Eq, PartialOrd, Hash,
+    Serialize,
+    Deserialize,
+    BorshDeserialize,
+    BorshSerialize,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Hash,
+    Debug,
 )]
 #[serde(crate = "near_sdk::serde", rename_all = "lowercase")]
 pub enum Platform {
@@ -35,6 +45,13 @@ pub enum Platform {
     Ethereum,
     Hive,
     Steem,
+}
+
+/// display platform in lower case
+impl fmt::Display for Platform {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "{}", format!("{:?}", self).to_lowercase())
+    }
 }
 
 /// Binding Proposal
@@ -84,8 +101,31 @@ impl Contract {
         require!(!handle.is_empty(), "Invalid handle");
 
         let account_id = env::predecessor_account_id();
-        let mut proposals = self.internal_get_proposals(&account_id);
 
+        // check account and handle are not bound yet
+        let bindings = self.internal_get_account(&account_id);
+        require!(
+            !bindings.contains_key(&platform),
+            format!(
+                "You account {} has already bound to handle {} on {}",
+                account_id,
+                bindings.get(&platform).unwrap(),
+                platform
+            )
+        );
+        let reverse_bindings = self.internal_get_reverse_lookup(&platform);
+        require!(
+            !reverse_bindings.contains_key(&handle),
+            format!(
+                "You handle {} on {} has already bound to account {}",
+                handle,
+                platform,
+                reverse_bindings.get(&handle).unwrap(),
+            )
+        );
+
+        // create proposal
+        let mut proposals = self.internal_get_proposals(&account_id);
         let current_timestamp = env::block_timestamp_ms();
         let proposal = BindingProposal {
             account_id: account_id.clone(),
@@ -147,11 +187,29 @@ impl Contract {
 
         // insert bindings
         let mut bindings = self.internal_get_account(&account_id);
+        require!(
+            !bindings.contains_key(&platform),
+            format!(
+                "You account {} has already bound to handle {} on {}",
+                account_id,
+                bindings.get(&platform).unwrap(),
+                platform
+            )
+        );
         bindings.insert(platform.clone(), proposal.handle.clone());
         self.accounts.insert(&account_id, &bindings);
 
         // update reverse bindings
         let mut reverse_bindings = self.internal_get_reverse_lookup(&platform);
+        require!(
+            !reverse_bindings.contains_key(&proposal.handle),
+            format!(
+                "You handle {} on {} has already bound to account {}",
+                proposal.handle,
+                platform,
+                reverse_bindings.get(&proposal.handle).unwrap(),
+            )
+        );
         reverse_bindings.insert(&proposal.handle, &account_id);
         self.reverse_lookup.insert(&platform, &reverse_bindings);
 
