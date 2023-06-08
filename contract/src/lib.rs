@@ -7,15 +7,19 @@ use events::Event;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedMap, UnorderedSet};
 use near_sdk::serde::Serialize;
-use near_sdk::{env, near_bindgen, require, AccountId, PanicOnDefault, Timestamp};
+use near_sdk::{
+    env, near_bindgen, require, AccountId, Balance, PanicOnDefault, Timestamp, ONE_NEAR,
+};
 use std::collections::HashMap;
 use types::*;
+
+const PROPOSAL_STORAGE_COST: Balance = ONE_NEAR / 100; // 0.01 NEAR
 
 const ERR_INVALID_HANDLE: &str = "Invalid handle";
 const ERR_VERIFICATION_EXPIRED: &str = "Proposal is created after verification";
 const ERR_INVALID_VERIFICATION_TIME: &str = "Verification timestamp must be in the past";
 const ERR_NO_PROPOSALS: &str = "Account has no proposals";
-pub const ERR_NO_PROPOSALS_FOR_PLATFORM: &str = "Account has no proposals for the platform";
+const ERR_NO_ENOUGH_STORAGE_FEE: &str = "0.01 NEAR fee is required for each binding proposal";
 
 /// Contract states
 #[near_bindgen]
@@ -49,7 +53,12 @@ impl Contract {
     /// Submit the proposal of binding my NEAR account with a social media handle
     /// Permission: can be called by any user
     /// (Optional) If the handle is already bound with an NEAR account, the proposal is invalid.
+    #[payable]
     pub fn propose_binding(&mut self, platform: Platform, handle: String) {
+        require!(
+            env::attached_deposit() >= PROPOSAL_STORAGE_COST,
+            ERR_NO_ENOUGH_STORAGE_FEE
+        );
         require!(!handle.is_empty(), ERR_INVALID_HANDLE);
 
         let account_id = env::predecessor_account_id();

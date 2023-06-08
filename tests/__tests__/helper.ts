@@ -1,4 +1,4 @@
-import { Worker, NearAccount, TransactionResult } from "near-workspaces";
+import { Worker, NearAccount, TransactionResult, NEAR } from "near-workspaces";
 import anyTest, { TestFn } from "ava";
 
 export function init() {
@@ -125,12 +125,20 @@ export async function proposeBinding(
   contract: NearAccount,
   user: NearAccount,
   platform: Platform,
-  handle: String
+  handle: String,
+  fee: NEAR = NEAR.parse("0.01N")
 ) {
-  return user.call(contract, "propose_binding", {
-    platform,
-    handle,
-  });
+  return user.call(
+    contract,
+    "propose_binding",
+    {
+      platform,
+      handle,
+    },
+    {
+      attachedDeposit: fee,
+    }
+  );
 }
 
 export async function cancelProposal(

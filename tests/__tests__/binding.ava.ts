@@ -1,3 +1,4 @@
+import { NEAR } from "near-workspaces";
 import {
   Platform,
   acceptBinding,
@@ -35,10 +36,31 @@ const ERR_INVALID_VERIFICATION_TIME =
 const ERR_NO_PROPOSALS = "Account has no proposals";
 const ERR_NO_PROPOSALS_FOR_PLATFORM = (platform: Platform) =>
   `Account has no proposals for ${platform}`;
+const ERR_NO_ENOUGH_STORAGE_FEE =
+  "0.01 NEAR fee is required for each binding proposal";
 
 test("get default twitter handle", async (t) => {
   const { contract, alice } = t.context.accounts;
   t.is(await getHandle(contract, alice, twitter), "");
+});
+
+test("binding proposal requires 0.01N fee", async (t) => {
+  const { contract, alice } = t.context.accounts;
+
+  const aliceTwitterHandle = "alice001";
+
+  // alice proposes binding
+  await assertFailure(
+    t,
+    proposeBinding(
+      contract,
+      alice,
+      twitter,
+      aliceTwitterHandle,
+      NEAR.parse("0")
+    ),
+    ERR_NO_ENOUGH_STORAGE_FEE
+  );
 });
 
 test("submit and accept binding proposal", async (t) => {
