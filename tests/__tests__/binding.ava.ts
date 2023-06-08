@@ -29,12 +29,12 @@ const ERR_HANDLE_ALREADY_BOUND = (
 ) =>
   `You handle ${handle} on ${platform} has already bound to account ${accountId}`;
 
-const ERR_VERIFICAITON_EXPIRED = "Proposal is created after verification";
+const ERR_VERIFICATION_EXPIRED = "Proposal is created after verification";
 const ERR_INVALID_VERIFICATION_TIME =
   "Verification timestamp must be in the past";
-const ERR_ACCOUNT_HAS_NO_PROPOSALS = "The account has no proposals";
-const ERR_ACCOUNT_HAS_NO_PLATFORM_PROPOSAL = "No proposals for the platform";
-const ERR_NO_PROPOSAL = "No proposals found";
+const ERR_NO_PROPOSALS = "Account has no proposals";
+const ERR_NO_PROPOSALS_FOR_PLATFORM = (platform: Platform) =>
+  `Account has no proposals for ${platform}`;
 
 test("get default twitter handle", async (t) => {
   const { contract, alice } = t.context.accounts;
@@ -74,7 +74,7 @@ test("cancel proposal", async (t) => {
   await assertFailure(
     t,
     getProposal(contract, alice, twitter),
-    ERR_NO_PROPOSAL
+    ERR_NO_PROPOSALS_FOR_PLATFORM(twitter)
   );
 });
 
@@ -125,7 +125,7 @@ test("can't accept nonexistent proposal", async (t) => {
   await assertFailure(
     t,
     acceptBinding(contract, manager, alice, twitter),
-    ERR_ACCOUNT_HAS_NO_PROPOSALS
+    ERR_NO_PROPOSALS
   );
 });
 
@@ -138,7 +138,7 @@ test("can't accept proposal nonexistent on given platform", async (t) => {
   await assertFailure(
     t,
     acceptBinding(contract, manager, alice, discord),
-    ERR_ACCOUNT_HAS_NO_PLATFORM_PROPOSAL
+    ERR_NO_PROPOSALS_FOR_PLATFORM(discord)
   );
 });
 
@@ -151,7 +151,7 @@ test("verification time needs to be between proposal creation time and now", asy
   await assertFailure(
     t,
     acceptBinding(contract, manager, alice, twitter, Date.now() - 10000),
-    ERR_VERIFICAITON_EXPIRED
+    ERR_VERIFICATION_EXPIRED
   );
   // manger provides a future verification time to accept, should be rejected
   await assertFailure(

@@ -1,69 +1,21 @@
 mod events;
 mod owner;
+mod types;
 mod view;
 
 use events::Event;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedMap, UnorderedSet};
-use near_sdk::serde::{Deserialize, Serialize};
-use near_sdk::{env, near_bindgen, require, AccountId, BorshStorageKey, PanicOnDefault, Timestamp};
+use near_sdk::serde::Serialize;
+use near_sdk::{env, near_bindgen, require, AccountId, PanicOnDefault, Timestamp};
 use std::collections::HashMap;
-use std::fmt;
+use types::*;
 
-#[derive(BorshStorageKey, BorshSerialize)]
-pub(crate) enum StorageKey {
-    Managers,
-    BindingProposals,
-    Accounts,
-    ReverseLookup,
-    ReverseBindings { platform: Platform },
-}
-
-/// Platform that we will verify
-/// Now only Twitter is supported
-#[derive(
-    Serialize,
-    Deserialize,
-    BorshDeserialize,
-    BorshSerialize,
-    Clone,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Hash,
-    Debug,
-)]
-#[serde(crate = "near_sdk::serde", rename_all = "lowercase")]
-pub enum Platform {
-    Twitter,
-    Facebook,
-    Reddit,
-    GitHub,
-    Telegram,
-    Discord,
-    Instagram,
-    Ethereum,
-    Hive,
-    Steem,
-}
-
-/// display platform in lower case
-impl fmt::Display for Platform {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, "{}", format!("{:?}", self).to_lowercase())
-    }
-}
-
-/// Binding Proposal
-#[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize, Clone)]
-#[serde(crate = "near_sdk::serde")]
-pub struct BindingProposal {
-    account_id: AccountId,
-    platform: Platform,
-    handle: String,
-    // proposal creation time
-    created_at: Timestamp,
-}
+const ERR_INVALID_HANDLE: &str = "Invalid handle";
+const ERR_VERIFICATION_EXPIRED: &str = "Proposal is created after verification";
+const ERR_INVALID_VERIFICATION_TIME: &str = "Verification timestamp must be in the past";
+const ERR_NO_PROPOSALS: &str = "Account has no proposals";
+pub const ERR_NO_PROPOSALS_FOR_PLATFORM: &str = "Account has no proposals for the platform";
 
 /// Contract states
 #[near_bindgen]
@@ -74,10 +26,10 @@ pub struct Contract {
     /// Manager accounts who are responsible for account binding
     managers: UnorderedSet<AccountId>,
     /// Binding proposals
-    binding_proposals: UnorderedMap<AccountId, HashMap<Platform, BindingProposal>>,
+    proposals: UnorderedMap<AccountId, HashMap<Platform, BindingProposal>>,
     /// Mapping from NEAR account ID to social media handles.
-    accounts: UnorderedMap<AccountId, HashMap<Platform, String>>,
-    /// Look up NEAR account ID with twitter handle
+    bindings: UnorderedMap<AccountId, HashMap<Platform, String>>,
+    /// Look up NEAR account ID with social media handle
     reverse_lookup: LookupMap<Platform, LookupMap<String, AccountId>>,
 }
 
@@ -88,8 +40,8 @@ impl Contract {
         Self {
             owner_id,
             managers: UnorderedSet::new(StorageKey::Managers),
-            binding_proposals: UnorderedMap::new(StorageKey::BindingProposals),
-            accounts: UnorderedMap::new(StorageKey::Accounts),
+            proposals: UnorderedMap::new(StorageKey::Proposals),
+            bindings: UnorderedMap::new(StorageKey::Bindings),
             reverse_lookup: LookupMap::new(StorageKey::ReverseLookup),
         }
     }
@@ -98,12 +50,12 @@ impl Contract {
     /// Permission: can be called by any user
     /// (Optional) If the handle is already bound with an NEAR account, the proposal is invalid.
     pub fn propose_binding(&mut self, platform: Platform, handle: String) {
-        require!(!handle.is_empty(), "Invalid handle");
+        require!(!handle.is_empty(), ERR_INVALID_HANDLE);
 
         let account_id = env::predecessor_account_id();
 
         // check account and handle are not bound yet
-        let bindings = self.internal_get_account(&account_id);
+        let bindings = self.internal_get_bindings(&account_id);
         require!(
             !bindings.contains_key(&platform),
             format!(
@@ -113,7 +65,7 @@ impl Contract {
                 platform
             )
         );
-        let reverse_bindings = self.internal_get_reverse_lookup(&platform);
+        let reverse_bindings = self.internal_get_reverse_bindings(&platform);
         require!(
             !reverse_bindings.contains_key(&handle),
             format!(
@@ -134,7 +86,7 @@ impl Contract {
             created_at: current_timestamp,
         };
         proposals.insert(platform.clone(), proposal);
-        self.binding_proposals.insert(&account_id, &proposals);
+        self.proposals.insert(&account_id, &proposals);
 
         Event::ProposeBinding {
             account_id: &account_id,
@@ -159,12 +111,8 @@ impl Contract {
         .emit();
     }
 
-    /// Unbind my NEAR account from social media handles, so wormhole3 cannot post on behalf of the user.
-    /// Permission: can be called by any user
-    // pub fn unbind(&mut self) {}
-
     /// Bind NEAR accounts to proposed social media handles if authorization succeed
-    /// The handles (e.g. twitter handle) provided in the proposal will be used. No need to provide via function call.
+    /// The handle (e.g. twitter handle) provided in the proposal will be used. No need to provide in the function.
     /// To avoid fake binding attack, only proposals created before verification time will be accepted
     /// Permission: can only be called by manager account
     pub fn accept_binding(
@@ -176,17 +124,17 @@ impl Contract {
         self.assert_manager();
         require!(
             verification_timestamp <= env::block_timestamp_ms(),
-            "Verification timestamp must be in the past"
+            ERR_INVALID_VERIFICATION_TIME
         );
 
         let proposal = self.internal_remove_proposal(&account_id, &platform.clone());
         require!(
             proposal.created_at < verification_timestamp,
-            "Proposal is created after verification"
+            ERR_VERIFICATION_EXPIRED
         );
 
         // insert bindings
-        let mut bindings = self.internal_get_account(&account_id);
+        let mut bindings = self.internal_get_bindings(&account_id);
         require!(
             !bindings.contains_key(&platform),
             format!(
@@ -197,10 +145,10 @@ impl Contract {
             )
         );
         bindings.insert(platform.clone(), proposal.handle.clone());
-        self.accounts.insert(&account_id, &bindings);
+        self.bindings.insert(&account_id, &bindings);
 
         // update reverse bindings
-        let mut reverse_bindings = self.internal_get_reverse_lookup(&platform);
+        let mut reverse_bindings = self.internal_get_reverse_bindings(&platform);
         require!(
             !reverse_bindings.contains_key(&proposal.handle),
             format!(
@@ -223,15 +171,15 @@ impl Contract {
 }
 
 impl Contract {
-    fn internal_get_account(&self, account_id: &AccountId) -> HashMap<Platform, String> {
-        self.accounts.get(account_id).unwrap_or_default()
+    fn internal_get_bindings(&self, account_id: &AccountId) -> HashMap<Platform, String> {
+        self.bindings.get(account_id).unwrap_or_default()
     }
 
     fn internal_get_proposals(&self, account_id: &AccountId) -> HashMap<Platform, BindingProposal> {
-        self.binding_proposals.get(account_id).unwrap_or_default()
+        self.proposals.get(account_id).unwrap_or_default()
     }
 
-    fn internal_get_reverse_lookup(&self, platform: &Platform) -> LookupMap<String, AccountId> {
+    fn internal_get_reverse_bindings(&self, platform: &Platform) -> LookupMap<String, AccountId> {
         self.reverse_lookup.get(platform).unwrap_or_else(|| {
             LookupMap::new(StorageKey::ReverseBindings {
                 platform: platform.clone(),
@@ -244,17 +192,13 @@ impl Contract {
         account_id: &AccountId,
         platform: &Platform,
     ) -> BindingProposal {
-        let mut proposals = self
-            .binding_proposals
-            .get(account_id)
-            .expect("The account has no proposals");
-
-        let binding_proposal = proposals
+        let mut proposals = self.proposals.get(account_id).expect(ERR_NO_PROPOSALS);
+        let proposal = proposals
             .remove(platform)
-            .expect("No proposals for the platform");
+            .unwrap_or_else(|| panic!("Account has no proposals for {}", platform));
 
-        self.binding_proposals.insert(account_id, &proposals);
-        binding_proposal
+        self.proposals.insert(account_id, &proposals);
+        proposal
     }
 }
 
