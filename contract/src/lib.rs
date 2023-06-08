@@ -249,9 +249,12 @@ impl Contract {
             .get(account_id)
             .expect("The account has no proposals");
 
-        proposals
+        let binding_proposal = proposals
             .remove(platform)
-            .expect("No proposals for the platform")
+            .expect("No proposals for the platform");
+
+        self.binding_proposals.insert(account_id, &proposals);
+        binding_proposal
     }
 }
 

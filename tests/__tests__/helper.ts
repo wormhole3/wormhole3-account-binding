@@ -133,16 +133,27 @@ export async function proposeBinding(
   });
 }
 
+export async function cancelProposal(
+  contract: NearAccount,
+  user: NearAccount,
+  platform: Platform
+) {
+  return user.call(contract, "cancel_binding_proposal", {
+    platform,
+  });
+}
+
 export async function acceptBinding(
   contract: NearAccount,
   manager: NearAccount,
   user: NearAccount,
-  platform: Platform
+  platform: Platform,
+  verificationTimestamp: Timestamp = Date.now() - 1
 ) {
-  await manager.call(contract, "accept_binding", {
+  return manager.call(contract, "accept_binding", {
     account_id: user,
     platform,
-    verification_timestamp: Date.now() - 1,
+    verification_timestamp: verificationTimestamp,
   });
 }
 
