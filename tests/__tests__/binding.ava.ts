@@ -30,9 +30,10 @@ const ERR_HANDLE_ALREADY_BOUND = (
 ) =>
   `You handle ${handle} on ${platform} has already bound to account ${accountId}`;
 
-const ERR_VERIFICATION_EXPIRED = "Proposal is created after verification";
-const ERR_INVALID_VERIFICATION_TIME =
-  "Verification timestamp must be in the past";
+const ERR_INVALID_HANDLE = "Invalid handle";
+const ERR_INVALID_PROPOSAL_CREATION_TIME =
+  "Proposal creation time must be in the past";
+const ERR_WRONG_PROPOSAL = "Proposal is not the verified one";
 const ERR_NO_PROPOSALS = "Account has no proposals";
 const ERR_NO_PROPOSALS_FOR_PLATFORM = (platform: Platform) =>
   `Account has no proposals for ${platform}`;
@@ -164,21 +165,35 @@ test("can't accept proposal nonexistent on given platform", async (t) => {
   );
 });
 
-test("verification time needs to be between proposal creation time and now", async (t) => {
+test("cannot accept proposal if provided with wrong creation time", async (t) => {
   const { contract, manager, alice } = t.context.accounts;
   const aliceTwitterHandle = "alice001";
   // alice proposes binding on twitter
   await proposeBinding(contract, alice, twitter, aliceTwitterHandle);
-  // manager provides a verification time before proposal creation, should be rejected
+
+  // manager provides an incorrect proposal creation time, should be rejected
   await assertFailure(
     t,
     acceptBinding(contract, manager, alice, twitter, Date.now() - 10000),
-    ERR_VERIFICATION_EXPIRED
+    ERR_WRONG_PROPOSAL
   );
-  // manger provides a future verification time to accept, should be rejected
+
+  // alice tries to make a fake binding by prosing a new binding
+  const proposal = await getProposal(contract, alice, twitter);
+  const elonMuskTwitterHandle = "elonmusk";
+  await proposeBinding(contract, alice, twitter, elonMuskTwitterHandle);
+
+  // manager provides an outdated proposal's creation time, should be rejected
+  await assertFailure(
+    t,
+    acceptBinding(contract, manager, alice, twitter, proposal.created_at),
+    ERR_WRONG_PROPOSAL
+  );
+
+  // manger provides a future proposal creation time, should be rejected
   await assertFailure(
     t,
     acceptBinding(contract, manager, alice, twitter, Date.now() + 10000),
-    ERR_INVALID_VERIFICATION_TIME
+    ERR_INVALID_PROPOSAL_CREATION_TIME
   );
 });

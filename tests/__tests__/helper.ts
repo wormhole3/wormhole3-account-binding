@@ -156,12 +156,17 @@ export async function acceptBinding(
   manager: NearAccount,
   user: NearAccount,
   platform: Platform,
-  verificationTimestamp: Timestamp = Date.now() - 1
+  proposalCreatedAt?: Timestamp
 ) {
+  if (!proposalCreatedAt) {
+    const proposal = await getProposal(contract, user, platform);
+    proposalCreatedAt = proposal.created_at;
+  }
+
   return manager.call(contract, "accept_binding", {
     account_id: user,
     platform,
-    verification_timestamp: verificationTimestamp,
+    proposal_created_at: proposalCreatedAt,
   });
 }
 

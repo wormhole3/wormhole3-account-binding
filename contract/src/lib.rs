@@ -16,8 +16,8 @@ use types::*;
 const PROPOSAL_STORAGE_COST: Balance = ONE_NEAR / 100; // 0.01 NEAR
 
 const ERR_INVALID_HANDLE: &str = "Invalid handle";
-const ERR_VERIFICATION_EXPIRED: &str = "Proposal is created after verification";
-const ERR_INVALID_VERIFICATION_TIME: &str = "Verification timestamp must be in the past";
+const ERR_INVALID_PROPOSAL_CREATION_TIME: &str = "Proposal creation time must be in the past";
+const ERR_WRONG_PROPOSAL: &str = "Proposal is not the verified one";
 const ERR_NO_PROPOSALS: &str = "Account has no proposals";
 const ERR_NO_ENOUGH_STORAGE_FEE: &str = "0.01 NEAR fee is required for each binding proposal";
 
@@ -122,24 +122,24 @@ impl Contract {
 
     /// Bind NEAR accounts to proposed social media handles if authorization succeed
     /// The handle (e.g. twitter handle) provided in the proposal will be used. No need to provide in the function.
-    /// To avoid fake binding attack, only proposals created before verification time will be accepted
+    /// To avoid fake binding attack, the creation timestamp of the proposal needs to be provided.
     /// Permission: can only be called by manager account
     pub fn accept_binding(
         &mut self,
         account_id: AccountId,
         platform: Platform,
-        verification_timestamp: Timestamp,
+        proposal_created_at: Timestamp,
     ) {
         self.assert_manager();
         require!(
-            verification_timestamp <= env::block_timestamp_ms(),
-            ERR_INVALID_VERIFICATION_TIME
+            proposal_created_at < env::block_timestamp_ms(),
+            ERR_INVALID_PROPOSAL_CREATION_TIME
         );
 
         let proposal = self.internal_remove_proposal(&account_id, &platform.clone());
         require!(
-            proposal.created_at < verification_timestamp,
-            ERR_VERIFICATION_EXPIRED
+            proposal.created_at == proposal_created_at,
+            ERR_WRONG_PROPOSAL
         );
 
         // insert bindings
