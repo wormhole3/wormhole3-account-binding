@@ -1,6 +1,7 @@
 mod events;
 mod owner;
 mod types;
+mod upgrade;
 mod view;
 
 use events::Event;
