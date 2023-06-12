@@ -42,7 +42,7 @@ const ERR_NO_ENOUGH_STORAGE_FEE =
 
 test("get default twitter handle", async (t) => {
   const { contract, alice } = t.context.accounts;
-  t.is(await getHandle(contract, alice, twitter), "");
+  t.is(await getHandle(contract, alice, twitter), null);
 });
 
 test("binding proposal requires 0.01N fee", async (t) => {
@@ -72,7 +72,7 @@ test("submit and accept binding proposal", async (t) => {
   // alice proposes binding
   await proposeBinding(contract, alice, twitter, aliceTwitterHandle);
   const proposal = await getProposal(contract, alice, twitter);
-  t.is(proposal.handle, aliceTwitterHandle);
+  t.is(proposal?.handle, aliceTwitterHandle);
 
   // manager accepts binding
   await acceptBinding(contract, manager, alice, twitter);
@@ -90,15 +90,11 @@ test("cancel proposal", async (t) => {
   // alice proposes binding
   await proposeBinding(contract, alice, twitter, aliceTwitterHandle);
   const proposal = await getProposal(contract, alice, twitter);
-  t.is(proposal.handle, aliceTwitterHandle);
+  t.is(proposal?.handle, aliceTwitterHandle);
 
   // alice cancels her binding proposal
   await cancelProposal(contract, alice, twitter);
-  await assertFailure(
-    t,
-    getProposal(contract, alice, twitter),
-    ERR_NO_PROPOSALS_FOR_PLATFORM(twitter)
-  );
+  t.is(await getProposal(contract, alice, twitter), null);
 });
 
 test("only allow 1-1 binding between account and handle on one platform", async (t) => {
@@ -139,12 +135,12 @@ test("only allow 1-1 binding between account and handle on one platform", async 
   // alice proposes binding on Discord
   await proposeBinding(contract, alice, discord, aliceDiscordHandle);
   const proposal = await getProposal(contract, alice, discord);
-  t.is(proposal.handle, aliceDiscordHandle);
+  t.is(proposal?.handle, aliceDiscordHandle);
 });
 
 test("can't accept nonexistent proposal", async (t) => {
   const { contract, manager, alice } = t.context.accounts;
-  // manager accept a nonexistent proposal
+  // manager accepts a nonexistent proposal
   await assertFailure(
     t,
     acceptBinding(contract, manager, alice, twitter),
@@ -157,7 +153,7 @@ test("can't accept proposal nonexistent on given platform", async (t) => {
   const aliceTwitterHandle = "alice001";
   // alice proposes binding on twitter
   await proposeBinding(contract, alice, twitter, aliceTwitterHandle);
-  // manager accept alice's discord proposal, should be rejected
+  // manager accepts alice's discord proposal, should be rejected
   await assertFailure(
     t,
     acceptBinding(contract, manager, alice, discord),
@@ -186,7 +182,7 @@ test("cannot accept proposal if provided with wrong creation time", async (t) =>
   // manager provides an outdated proposal's creation time, should be rejected
   await assertFailure(
     t,
-    acceptBinding(contract, manager, alice, twitter, proposal.created_at),
+    acceptBinding(contract, manager, alice, twitter, proposal?.created_at),
     ERR_WRONG_PROPOSAL
   );
 

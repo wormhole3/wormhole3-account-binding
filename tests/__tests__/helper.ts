@@ -119,6 +119,8 @@ export enum Platform {
   Steem = "steem",
 }
 
+const DEFAULT_PROPOSAL_CREATION_TIME = 0;
+
 // Binding methods
 
 export async function proposeBinding(
@@ -158,9 +160,9 @@ export async function acceptBinding(
   platform: Platform,
   proposalCreatedAt?: Timestamp
 ) {
-  if (!proposalCreatedAt) {
+  if (typeof proposalCreatedAt === "undefined") {
     const proposal = await getProposal(contract, user, platform);
-    proposalCreatedAt = proposal.created_at;
+    proposalCreatedAt = proposal?.created_at ?? DEFAULT_PROPOSAL_CREATION_TIME;
   }
 
   return manager.call(contract, "accept_binding", {
@@ -174,7 +176,7 @@ export async function getProposal(
   contract: NearAccount,
   user: NearAccount,
   platform: Platform
-): Promise<BindingProposal> {
+): Promise<BindingProposal | null> {
   return contract.view("get_proposal", {
     account_id: user,
     platform,
@@ -185,7 +187,7 @@ export async function getHandle(
   contract: NearAccount,
   user: NearAccount,
   platform: Platform
-): Promise<String> {
+): Promise<String | null> {
   return contract.view("get_handle", {
     account_id: user,
     platform,
@@ -196,7 +198,7 @@ export async function lookupAccount(
   contract: NearAccount,
   platform: Platform,
   handle: String
-): Promise<String> {
+): Promise<String | null> {
   return contract.view("lookup_account", {
     platform,
     handle,

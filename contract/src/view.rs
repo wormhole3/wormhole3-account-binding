@@ -38,25 +38,24 @@ impl Contract {
     }
 
     /// Get binding proposal of account
-    pub fn get_proposal(&self, account_id: AccountId, platform: Platform) -> BindingProposal {
+    pub fn get_proposal(
+        &self,
+        account_id: AccountId,
+        platform: Platform,
+    ) -> Option<BindingProposal> {
         let proposals = self.internal_get_proposals(&account_id);
-        proposals
-            .get(&platform)
-            .unwrap_or_else(|| panic!("Account has no proposals for {}", platform))
-            .clone()
+        proposals.get(&platform).cloned()
     }
 
     /// Get social media handle from account ID
-    pub fn get_handle(&self, account_id: AccountId, platform: Platform) -> String {
+    pub fn get_handle(&self, account_id: AccountId, platform: Platform) -> Option<String> {
         let bindings = self.internal_get_bindings(&account_id);
-        bindings.get(&platform).unwrap_or(&"".to_string()).clone()
+        bindings.get(&platform).cloned()
     }
 
     // Look up NEAR account with handle
-    pub fn lookup_account(&self, platform: Platform, handle: String) -> AccountId {
-        self.internal_get_reverse_bindings(&platform)
-            .get(&handle)
-            .unwrap_or_else(|| AccountId::new_unchecked("".to_string()))
+    pub fn lookup_account(&self, platform: Platform, handle: String) -> Option<AccountId> {
+        self.internal_get_reverse_bindings(&platform).get(&handle)
     }
 
     // Get contract owner ID
