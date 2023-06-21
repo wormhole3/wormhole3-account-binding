@@ -39,6 +39,8 @@ const ERR_NO_PROPOSALS_FOR_PLATFORM = (platform: Platform) =>
   `Account has no proposals for ${platform}`;
 const ERR_NO_ENOUGH_STORAGE_FEE =
   "0.01 NEAR fee is required for each binding proposal";
+const ERR_INVALID_PLATFORM = (platform: Platform) =>
+  `unknown variant ${"`" + platform + "`"}`;
 
 test("get default twitter handle", async (t) => {
   const { contract, alice } = t.context.accounts;
@@ -192,4 +194,49 @@ test("cannot accept proposal if provided with wrong creation time", async (t) =>
     acceptBinding(contract, manager, alice, twitter, Date.now() + 10000),
     ERR_INVALID_PROPOSAL_CREATION_TIME
   );
+});
+
+test("proposal will be deleted after accepted", async (t) => {
+  const { contract, manager, alice } = t.context.accounts;
+  const aliceTwitterHandle = "alice001";
+  // alice proposes binding on twitter
+  await proposeBinding(contract, alice, twitter, aliceTwitterHandle);
+
+  const proposal = await getProposal(contract, alice, twitter);
+  // admin accept alice's proposal
+  await acceptBinding(contract, manager, alice, twitter, proposal?.created_at);
+  t.is(await getHandle(contract, alice, twitter), aliceTwitterHandle);
+
+  t.is(await getProposal(contract, alice, twitter), null);
+});
+
+test("cannot submit proposal of an invalid platform", async (t) => {
+  const { contract, alice } = t.context.accounts;
+  const aliceTwitterHandle = "alice001";
+
+  await assertFailure(
+    t,
+    proposeBinding(contract, alice, Platform.Invalid, aliceTwitterHandle),
+    ERR_INVALID_PLATFORM(Platform.Invalid)
+  );
+});
+
+test("special characters are supported for handles in proposals", async (t) => {
+  const { contract, alice } = t.context.accounts;
+  let specialTwitterHandles = [
+    "alice↑001",
+    "alice★001",
+    "aliceΨ001",
+    "alice➤001",
+    "alice⇧001",
+    "aliceΖ001",
+    "aliceⅦ001",
+    "ォカヵキ",
+    "，，，",
+  ];
+  for (const handle of specialTwitterHandles) {
+    await proposeBinding(contract, alice, twitter, handle);
+    const proposal = await getProposal(contract, alice, twitter);
+    t.is(proposal?.handle, handle);
+  }
 });

@@ -117,6 +117,7 @@ export enum Platform {
   Ethereum = "ethereum",
   Hive = "hive",
   Steem = "steem",
+  Invalid = "invalid",
 }
 
 const DEFAULT_PROPOSAL_CREATION_TIME = 0;
