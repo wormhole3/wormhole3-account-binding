@@ -12,6 +12,20 @@ wormhole3-account-binding: contract
 dev-deploy: build
 	near dev-deploy --wasmFile ./res/wormhole3_account_binding.wasm
 
+ROOT_ACCOUNT ?=
+
+dev-destroy:
+	NEAR_ENV=testnet near delete binding.$(ROOT_ACCOUNT) $(ROOT_ACCOUNT)
+
+prepare:
+	near create-account verifier.$(ROOT_ACCOUNT) --masterAccount $(ROOT_ACCOUNT) --initialBalance 10
+	near create-account sender.$(ROOT_ACCOUNT) --masterAccount $(ROOT_ACCOUNT) --initialBalance 20
+
+deploy: build prepare
+	near create-account binding.$(ROOT_ACCOUNT) --masterAccount $(ROOT_ACCOUNT) --initialBalance 5
+	near deploy --wasmFile ./res/wormhole3_account_binding.wasm --initFunction new --initArgs '{"owner_id": "$(ROOT_ACCOUNT)"}' --accountId binding.$(ROOT_ACCOUNT)
+	near call binding.$(ROOT_ACCOUNT) add_manager '{"manager_id":"verifier.$(ROOT_ACCOUNT)"}' --accountId $(ROOT_ACCOUNT)
+
 clean:
 	rm res/*.wasm
 	rm tests/compiled-contracts/*.wasm

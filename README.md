@@ -25,3 +25,14 @@ Run both unit test and integration test
 ```bash
 make test
 ```
+
+## Deploy Contract
+
+Deploy and initialize contract, and add default manager account.
+
+Specify root account with `ROOT_ACCOUNT`.
+
+```bash
+# prepare accounts and deploy contract
+ROOT_ACCOUNT=wormhole3.testnet make deploy
+```
