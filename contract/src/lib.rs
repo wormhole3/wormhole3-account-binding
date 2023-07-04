@@ -51,9 +51,9 @@ impl Contract {
         }
     }
 
-    /// Submit the proposal of binding my NEAR account with a social media handle
+    /// Submit the proposal of binding my NEAR account with a social media handle.
+    /// If the handle is already bound with an NEAR account, the proposal is invalid.
     /// Permission: can be called by any user
-    /// (Optional) If the handle is already bound with an NEAR account, the proposal is invalid.
     #[payable]
     pub fn propose_binding(&mut self, platform: Platform, handle: String) {
         require!(
@@ -211,23 +211,3 @@ impl Contract {
         proposal
     }
 }
-
-// unit tests
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-
-//     #[test]
-//     fn get_default_greeting() {
-//         let contract = Contract::new();
-//         // this test did not call set_greeting so should return the default "Hello" greeting
-//         assert_eq!(contract.get_greeting(), "Hello".to_string());
-//     }
-
-//     #[test]
-//     fn set_then_get_greeting() {
-//         let mut contract = Contract::new();
-//         contract.set_greeting("howdy".to_string());
-//         assert_eq!(contract.get_greeting(), "howdy".to_string());
-//     }
-// }

@@ -20,20 +20,24 @@ impl Contract {
 
     pub fn add_manager(&mut self, manager_id: AccountId) {
         self.assert_owner();
-        self.managers.insert(&manager_id);
-        Event::AddManager {
-            manager_id: &manager_id,
+        let inserted = self.managers.insert(&manager_id);
+        if inserted {
+            Event::AddManager {
+                manager_id: &manager_id,
+            }
+            .emit();
         }
-        .emit();
     }
 
     pub fn remove_manager(&mut self, manager_id: AccountId) -> bool {
         self.assert_owner();
         let removed = self.managers.remove(&manager_id);
-        Event::RemoveManager {
-            manager_id: &manager_id,
+        if removed {
+            Event::RemoveManager {
+                manager_id: &manager_id,
+            }
+            .emit();
         }
-        .emit();
         removed
     }
 }
